@@ -1,0 +1,30 @@
+# Environment and Secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Python & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Temporary / Scratch
+data/*.tmp
+.system_generated/
+*.log
+
+# Operating System
+.DS_Store
+Thumbs.db
+desktop.ini

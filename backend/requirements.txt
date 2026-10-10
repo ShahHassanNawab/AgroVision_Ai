@@ -1,0 +1,36 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Plant Disease Detection — Python Dependencies
+# Install: pip install -r backend/requirements.txt
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Web framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# ML / Deep Learning (Keras / TensorFlow for .h5 MobileNetV2 model)
+# TF 2.16+ ships Keras 3 — pin to a stable 2.x series for .h5 compatibility
+tensorflow==2.16.1
+numpy==1.26.4
+
+# Image processing
+Pillow==10.3.0
+
+# Gemini Vision API (google-genai is the new unified SDK; google-generativeai is legacy)
+google-genai==0.8.0
+
+# Optional: HTTP client used by Gemini REST fallback
+requests==2.32.3
+
+# Environment / config
+python-dotenv==1.0.1
+
+# Data validation (FastAPI uses pydantic internally)
+pydantic==2.7.1
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Optional extras (uncomment if you use PyTorch or ONNX weights instead)
+# ──────────────────────────────────────────────────────────────────────────────
+# torch==2.3.0
+# torchvision==0.18.0
+# onnxruntime==1.18.0
