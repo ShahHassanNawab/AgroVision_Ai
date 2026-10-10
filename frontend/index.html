@@ -130,14 +130,25 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--bd);color:var
     <a href="#assistant" data-view="assistant"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>AI Assistant</a>
   </nav>
   <div class="eng" aria-live="polite"><b>Engine status</b>
+    <div class="row" id="statServer"><span class="dot standby"></span><span>Server: Checking...</span></div>
     <div class="row" id="statModel"><span class="dot standby"></span><span>Model: Checking...</span></div>
     <div class="row" id="statGemini"><span class="dot standby"></span><span>Gemini: Checking...</span></div>
-    <div class="row" id="statScans"><span class="dot active"></span><span>System: Online</span></div></div>
+    <div class="row" id="statScans"><span class="dot active"></span><span>System: Online</span></div>
+    <button class="btn ghost sm" id="btnConfigApi" type="button" style="margin-top:6px;padding:4px 8px;font-size:0.75rem;width:100%;color:#fff;background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2)">Configure Backend API</button>
+  </div>
   <div class="me"><div class="av" aria-hidden="true">AV</div><div>AgroVision AI User<small>NovaMind Workspace</small></div></div>
 </aside>
 
 <main class="main">
 <div class="mb"><svg class="ic" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 12-4 16-9 16z"/></svg>AgroVision AI</div>
+
+<div class="err" id="apiAlertBanner" hidden style="background:#FFFBEB;border-color:#FDE68A;color:#92400E;margin-bottom:20px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div class="row" style="gap:10px">
+    <svg class="ic" viewBox="0 0 24 24" style="stroke:#D97706;width:22px;height:22px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span><strong>Backend Disconnected:</strong> GitHub Pages only hosts static files and cannot execute Python. Connect your deployed backend URL (Render, Railway, or local server) to enable plant disease diagnosis.</span>
+  </div>
+  <button class="btn pri sm" id="btnBannerConfig" type="button" style="padding:6px 14px">Connect Backend</button>
+</div>
 
 <!-- Diagnosis -->
 <section class="view" id="view-diagnose">
@@ -296,11 +307,31 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid var(--bd);color:var
 </main>
 </div>
 
+<dialog id="apiModal" style="border:none;border-radius:var(--r);padding:24px;max-width:500px;width:92%;box-shadow:0 20px 40px rgba(0,0,0,0.3);background:#fff;margin:auto">
+  <h3 style="color:var(--forest);font-size:1.2rem;margin-bottom:8px">Backend API Configuration</h3>
+  <p class="mu" style="font-size:0.86rem;margin-bottom:16px">Enter the URL of your live FastAPI backend service. If running locally with <code>python run.py</code>, enter <code>http://127.0.0.1:8000</code>.</p>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">
+    <label style="font-size:0.84rem;font-weight:600;color:var(--forest)" for="apiInputUrl">Backend API Base URL</label>
+    <input id="apiInputUrl" type="url" placeholder="https://your-backend.onrender.com or http://127.0.0.1:8000" style="padding:10px 12px;border:1px solid var(--bd);border-radius:var(--rs);font-family:Inter,sans-serif;font-size:0.9rem;width:100%">
+    <div id="apiTestResult" style="font-size:0.82rem;display:none;margin-top:4px"></div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap">
+    <button class="btn ghost sm" id="apiModalCancel" type="button">Cancel</button>
+    <button class="btn ghost sm" id="apiModalReset" type="button">Reset to Default</button>
+    <button class="btn pri sm" id="apiModalSave" type="button">Test & Save</button>
+  </div>
+</dialog>
+
 <a class="fab" id="fab" href="#assistant" data-tip="Ask Gemini AI" aria-label="Open Gemini Agronomy Assistant"><svg class="ic" viewBox="0 0 24 24" style="width:26px;height:26px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></a>
 <canvas id="hiddenCanvas" style="display:none"></canvas>
 
 <script>
 const $=id=>document.getElementById(id),MAX_MB=10,OK=["image/jpeg","image/png","image/webp"],VIEWS=["diagnose","field","history","assistant"];
+function apiUrl(endpoint){
+  const stored=(localStorage.getItem("agrovision_api_url")||"").trim().replace(/\/+$/,"");
+  if(stored)return stored+endpoint;
+  return endpoint;
+}
 let file=null,stream=null,facing="environment",cur=null,chatHist=[],busy=false,sending=false,objUrl=null,lastMsg="";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmtDate=ts=>ts?new Date(ts*1000).toLocaleDateString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"Just now";
@@ -377,7 +408,7 @@ $("cameraSnapBtn").onclick=()=>{
 /* 4. Backend: POST /api/diagnose with States 2, 3, 4, 5, 6 */
 async function analyzeImage(f){
   const fd=new FormData();fd.append("image",f);
-  const r=await fetch("/api/diagnose",{method:"POST",body:fd});
+  const r=await fetch(apiUrl("/api/diagnose"),{method:"POST",body:fd});
   if(!r.ok){
     const p=await r.json().catch(()=>({}));
     throw new Error(p.detail||p.message||("Diagnosis API returned status "+r.status));
@@ -538,7 +569,7 @@ async function send(t){
   $("chatStream").scrollTop=$("chatStream").scrollHeight;
 
   try{
-    const r=await fetch("/api/chat",{
+    const r=await fetch(apiUrl("/api/chat"),{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
@@ -589,14 +620,24 @@ $("clearChat").onclick=()=>initChat(cur);
 const srow=(id,cls,t)=>{$(id).innerHTML='<span class="dot '+cls+'"></span><span>'+esc(t)+"</span>"};
 async function fetchStatus(){
   try{
-    const r=await fetch("/api/health");if(!r.ok)return;const s=await r.json();
+    const r=await fetch(apiUrl("/api/health"));
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const s=await r.json();
+    srow("statServer","active","Server: Connected");
     srow("statModel",s.model_loaded?"active":"standby",s.model_loaded?"Model: "+(s.framework||"Active"):"Model: Standby");
     srow("statGemini",s.gemini_active?"active":"warning",s.gemini_active?"Gemini: Live AI":"Gemini: Standby (set key)");
-  }catch(e){}
+    if($("apiAlertBanner"))$("apiAlertBanner").hidden=true;
+  }catch(e){
+    const isStatic=location.hostname.endsWith("github.io")||location.protocol==="file:";
+    srow("statServer","warning",isStatic?"Server: Static (No API)":"Server: Disconnected");
+    srow("statModel","standby","Model: Offline");
+    srow("statGemini","standby","Gemini: Offline");
+    if($("apiAlertBanner"))$("apiAlertBanner").hidden=false;
+  }
 }
 async function fetchFieldStats(){
   try{
-    const r=await fetch("/api/field");if(!r.ok)throw 0;const d=await r.json(),h=d.health;
+    const r=await fetch(apiUrl("/api/field"));if(!r.ok)throw 0;const d=await r.json(),h=d.health;
     $("statHealthIndex").textContent=h!=null?h+"/100":"No data";
     $("statHealthMeta").textContent=h==null?"Run scans to calculate":h>=80?"Healthy":h>=50?"Moderate stress":"Critical intervention";
     $("statAlerts").textContent=d.alerts??0;$("statAlertsMeta").textContent=d.alerts>0?"Severe cases detected":"No severe cases";
@@ -610,7 +651,7 @@ const leaf='<svg class="ic" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 4 13c0
 async function fetchHistory(){
   const box=$("historyListContainer");
   try{
-    const r=await fetch("/api/history");if(!r.ok)throw 0;const list=await r.json()||[];
+    const r=await fetch(apiUrl("/api/history"));if(!r.ok)throw 0;const list=await r.json()||[];
     if(!list.length){box.innerHTML='<div class="card empty"><h3>No past diagnoses yet</h3><p class="mu">Run a scan and it will be listed here.</p><a class="btn pri" href="#diagnose">Analyze a leaf</a></div>';return}
     box.innerHTML=list.map(i=>{
       const s=String(i.severity||"").toLowerCase(),k=!s?"":/sev|high/.test(s)?"severe":/heal|none/.test(s)?"healthy":/low|mild/.test(s)?"low":"moderate";
@@ -623,7 +664,42 @@ async function fetchHistory(){
   }
 }
 
-/* 8. Init */
+/* 8. API Modal & Init */
+const apiModal=$("apiModal");
+const openApiModal=()=>{
+  $("apiInputUrl").value=localStorage.getItem("agrovision_api_url")||"";
+  $("apiTestResult").style.display="none";
+  apiModal.showModal();
+};
+$("btnConfigApi")?.addEventListener("click",openApiModal);
+$("btnBannerConfig")?.addEventListener("click",openApiModal);
+$("apiModalCancel")?.addEventListener("click",()=>apiModal.close());
+$("apiModalReset")?.addEventListener("click",()=>{
+  localStorage.removeItem("agrovision_api_url");
+  apiModal.close();
+  fetchStatus();fetchFieldStats();fetchHistory();
+});
+$("apiModalSave")?.addEventListener("click",async()=>{
+  const url=$("apiInputUrl").value.trim().replace(/\/+$/,"");
+  const resBox=$("apiTestResult");
+  resBox.style.display="block";
+  resBox.style.color="var(--mu)";
+  resBox.textContent="Testing connection to "+(url||"relative /api")+"...";
+  try{
+    const r=await fetch((url||"")+"/api/health");
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    const data=await r.json();
+    resBox.style.color="var(--ok)";
+    resBox.textContent="✓ Connected successfully! Model: "+(data.framework||"Ready");
+    if(url)localStorage.setItem("agrovision_api_url",url);
+    else localStorage.removeItem("agrovision_api_url");
+    setTimeout(()=>{apiModal.close();fetchStatus();fetchFieldStats();fetchHistory();},900);
+  }catch(err){
+    resBox.style.color="var(--err)";
+    resBox.textContent="✗ Connection failed: "+err.message+". Ensure the backend is active & CORS is enabled.";
+  }
+});
+
 if(!matchMedia("(min-width:1081px)").matches)document.querySelectorAll("details.fold").forEach(d=>d.open=false);
 initChat(null);route();fetchStatus();fetchFieldStats();setInterval(fetchStatus,30000);
 </script>

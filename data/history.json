@@ -1,5 +1,21 @@
 [
   {
+    "id": "bb7a0199-4643-4c35-afd2-f4c02177e3dd",
+    "name": "Corn (maize) (Healthy)",
+    "confidence": 0.4373,
+    "score": 96,
+    "severity": "Healthy",
+    "ts": 1791656617.2715979
+  },
+  {
+    "id": "1cc81162-5aa6-4303-904f-5a981c054a28",
+    "name": "Corn (maize) (Healthy)",
+    "confidence": 0.4373,
+    "score": 96,
+    "severity": "Healthy",
+    "ts": 1791656290.1895165
+  },
+  {
     "id": "4ff06e18-149e-4811-9438-e8c08ff9bf79",
     "name": "Corn (maize) - Cercospora Leaf Spot Gray Leaf Spot",
     "confidence": 0.8092,
