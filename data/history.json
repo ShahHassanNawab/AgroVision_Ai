@@ -1,5 +1,13 @@
 [
   {
+    "id": "4ff06e18-149e-4811-9438-e8c08ff9bf79",
+    "name": "Corn (maize) - Cercospora Leaf Spot Gray Leaf Spot",
+    "confidence": 0.8092,
+    "score": 96,
+    "severity": "Low",
+    "ts": 1791654571.1041749
+  },
+  {
     "id": "d65a8412-2512-49fe-8972-633540a51df6",
     "name": "Grape - Leaf Blight (Isariopsis Leaf Spot)",
     "confidence": 1.0,
